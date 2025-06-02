@@ -30,7 +30,7 @@ def get_info(path):
         return Info(siginfo.length // siginfo.channels, siginfo.rate, siginfo.channels)
 
 
-def find_audio_files(path, exts=[".wav"], progress=True):
+def find_audio_files(path, exts=[".wav", ".flac", ".mp3", ".m4a"], progress=True):
     audio_files = []
     for root, folders, files in os.walk(path, followlinks=True):
         for file in files:
