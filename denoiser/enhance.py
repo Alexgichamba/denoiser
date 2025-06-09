@@ -69,12 +69,20 @@ def get_estimate(model, noisy, args):
     return estimate
 
 
-def save_wavs(estimates, noisy_sigs, filenames, out_dir, sr=16_000):
+def save_wavs(estimates, noisy_sigs, filenames, out_dir, input_root=None, sr=16_000):
     # Write result
     for estimate, noisy, filename in zip(estimates, noisy_sigs, filenames):
-        filename = os.path.join(out_dir, os.path.basename(filename).rsplit(".", 1)[0])
-        write(noisy, filename + "_noisy.wav", sr=sr)
-        write(estimate, filename + "_enhanced.wav", sr=sr)
+        if input_root:
+            # Preserve directory structure
+            rel_path = os.path.relpath(filename, input_root)
+            output_path = os.path.join(out_dir, rel_path)
+            output_path = os.path.splitext(output_path)[0] + ".wav"
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        else:
+            # Original behavior - just basename
+            output_path = os.path.join(out_dir, os.path.basename(filename).rsplit(".", 1)[0] + ".wav")
+        
+        write(estimate, output_path, sr=sr)
 
 
 def write(wav, filename, sr=16_000):
@@ -104,7 +112,8 @@ def get_dataset(args, sample_rate, channels):
 
 def _estimate_and_save(model, noisy_signals, filenames, out_dir, args):
     estimate = get_estimate(model, noisy_signals, args)
-    save_wavs(estimate, noisy_signals, filenames, out_dir, sr=model.sample_rate)
+    input_root = args.noisy_dir if hasattr(args, 'noisy_dir') and args.noisy_dir else None
+    save_wavs(estimate, noisy_signals, filenames, out_dir, input_root, sr=model.sample_rate)
 
 
 def enhance(args, model=None, local_out_dir=None):
@@ -140,7 +149,8 @@ def enhance(args, model=None, local_out_dir=None):
             else:
                 # Forward
                 estimate = get_estimate(model, noisy_signals, args)
-                save_wavs(estimate, noisy_signals, filenames, out_dir, sr=model.sample_rate)
+                input_root = args.noisy_dir if args.noisy_dir else None
+                save_wavs(estimate, noisy_signals, filenames, out_dir, input_root, sr=model.sample_rate)
 
         if pendings:
             print('Waiting for pending jobs...')
